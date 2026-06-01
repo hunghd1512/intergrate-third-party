@@ -1,0 +1,43 @@
+# Viettel CA KySo Gateway Configuration
+# ==========================================
+# Load secrets from environment variables in production:
+#   VIETTEL_CERT_PASSWORD, VIETTEL_LICENSE_KEY
+
+gateway:
+  ky-so:
+    endpoint: ${VIETTEL_ENDPOINT:https://ca.viettel.vn/api/sign}
+    certificate-path: ${VIETTEL_CERT_PATH:/certs/viettel-kyso.p12}
+    certificate-password: ${VIETTEL_CERT_PASSWORD:}
+    license-key: ${VIETTEL_LICENSE_KEY:}
+    timeout-seconds: 30
+    rate-limit-per-second: 5
+    license-expires-at: ${VIETTEL_LICENSE_EXPIRES:2030-12-31T23:59:59}
+    quota-limit: -1  # -1 = unlimited
+
+# Resilience defaults
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 30
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 30s
+        recordExceptions:
+          - com.pmkt.gateway.base.ExternalGatewayException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+        ignoreExceptions:
+          - com.pmkt.gateway.base.LicenseExpiredException
+          - com.pmkt.gateway.base.QuotaExceededException
+
+# Logging
+logging:
+  logger:
+    AUDIT: INFO
+    com.pmkt.gateway: DEBUG
